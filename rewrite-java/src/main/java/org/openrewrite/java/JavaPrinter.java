@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Tree;
+import org.openrewrite.java.marker.CStyleArrayDimensions;
 import org.openrewrite.java.marker.CompactConstructor;
 import org.openrewrite.java.marker.OmitParentheses;
 import org.openrewrite.java.marker.TrailingComma;
@@ -838,6 +839,15 @@ public class JavaPrinter<P> extends JavaVisitor<PrintOutputCapture<P>> {
         if (!method.getMarkers().findFirst(CompactConstructor.class).isPresent()) {
             visitContainer("(", method.getPadding().getParameters(), JContainer.Location.METHOD_DECLARATION_PARAMETERS, ",", ")", p);
         }
+        // Print C-style array dimensions after the parameters if present
+        method.getMarkers().findFirst(CStyleArrayDimensions.class).ifPresent(marker -> {
+            for (JLeftPadded<Space> dimension : marker.getDimensions()) {
+                visitSpace(dimension.getBefore(), Space.Location.DIMENSION_PREFIX, p);
+                p.append('[');
+                visitSpace(dimension.getElement(), Space.Location.DIMENSION, p);
+                p.append(']');
+            }
+        });
         visitContainer("throws", method.getPadding().getThrows(), JContainer.Location.THROWS, ",", null, p);
         visit(method.getBody(), p);
         visitLeftPadded("default", method.getPadding().getDefaultValue(), JLeftPadded.Location.METHOD_DECLARATION_DEFAULT_VALUE, p);

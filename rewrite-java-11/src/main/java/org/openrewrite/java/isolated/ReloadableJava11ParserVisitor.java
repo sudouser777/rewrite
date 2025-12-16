@@ -35,6 +35,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaParsingException;
 import org.openrewrite.java.JavaPrinter;
 import org.openrewrite.java.internal.JavaTypeCache;
+import org.openrewrite.java.marker.CStyleArrayDimensions;
 import org.openrewrite.java.marker.OmitParentheses;
 import org.openrewrite.java.marker.TrailingComma;
 import org.openrewrite.java.tree.*;
@@ -979,6 +980,11 @@ public class ReloadableJava11ParserVisitor extends TreePathScanner<J, Space> {
                 JContainer.build(paramFmt, singletonList(padRight(new J.Empty(randomId(), sourceBefore(")"),
                         Markers.EMPTY), EMPTY)), Markers.EMPTY);
 
+        List<JLeftPadded<Space>> dimensionsAfterParams = arrayDimensions();
+        // Store dimensions found after parameters as C-style marker for correct printing
+        Markers methodMarkers = dimensionsAfterParams.isEmpty() ? Markers.EMPTY :
+                Markers.build(singletonList(new CStyleArrayDimensions(randomId(), dimensionsAfterParams)));
+
         JContainer<NameTree> throws_ = node.getThrows().isEmpty() ? null :
                 JContainer.build(sourceBefore("throws"), convertAll(node.getThrows(), commaDelim, noDelim),
                         Markers.EMPTY);
@@ -988,7 +994,7 @@ public class ReloadableJava11ParserVisitor extends TreePathScanner<J, Space> {
         JLeftPadded<Expression> defaultValue = node.getDefaultValue() == null ? null :
                 padLeft(sourceBefore("default"), convert(node.getDefaultValue()));
 
-        return new J.MethodDeclaration(randomId(), fmt, Markers.EMPTY,
+        return new J.MethodDeclaration(randomId(), fmt, methodMarkers,
                 modifierResults.getLeadingAnnotations(),
                 modifierResults.getModifiers(), typeParams,
                 returnType, name, params, throws_, body, defaultValue,
@@ -1347,6 +1353,18 @@ public class ReloadableJava11ParserVisitor extends TreePathScanner<J, Space> {
 
         Space prefix = whitespace();
         TypeTree elemType = convert(typeIdent);
+
+        // Check if '[' is at the current position (normal array) or after method name (C-style)
+        int saveCursor = cursor;
+        whitespace();
+        boolean hasBracketAtCurrentPosition = cursor < source.length() && source.charAt(cursor) == '[';
+        cursor = saveCursor;
+
+        if (!hasBracketAtCurrentPosition) {
+            // C-style array: dimensions appear after method name, return just the element type
+            return elemType.withPrefix(prefix);
+        }
+
         List<J.Annotation> annotations = leadingAnnotations(annotationPosTable);
         JLeftPadded<Space> dimension = padLeft(sourceBefore("["), sourceBefore("]"));
         assert arrayTypeTree != null;

@@ -457,4 +457,189 @@ class JavaParserTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void cstyleArrayMethod() {
+        rewriteRun(
+          java(
+            """
+              import lombok.NonNull;
+              import java.io.IOException;
+              
+              abstract class A {
+                  // Basic C-style with whitespace variations
+                  public byte toByteArray()[] {
+                    return new byte[]{};
+                  }
+              
+                  public int    toIntArray  ()[] {
+                    return new int[]{};
+                  }
+              
+                  // Multiple dimensions with spacing
+                  public String    toStringArray  ()[ ] [ ] {
+                    return new String[][]{};
+                  }
+              
+                  // With method annotations
+                  @NonNull
+                  @Deprecated
+                  public String annotatedMethod()[][] {
+                    return new String[][]{};
+                  }
+              
+                  // With type parameters (generics)
+                  public <T> T convert(T value)[] {
+                    return (T[]) new Object[]{value};
+                  }
+              
+                  public <K, V> V process(K key)[][] {
+                    return (V[][]) new Object[][]{};
+                  }
+              
+                  // With throws clause
+                  public byte readBytes()[] throws IOException {
+                    return new byte[]{};
+                  }
+              
+                  public String readLines()[] throws IOException, InterruptedException {
+                    return new String[]{};
+                  }
+              
+                  // With parameters (including annotated params)
+                  public byte convert(@NonNull String input, int size)[] {
+                    return new byte[size];
+                  }
+              
+                  public int process(byte[] data, String... args)[] {
+                    return new int[]{};
+                  }
+              
+                  // Abstract method with C-style
+                  abstract Object getAbstractArray()[];
+              
+                  // Static method
+                  static int getStaticArray()[] {
+                    return new int[]{};
+                  }
+              }
+              
+              // Interface methods
+              interface B {
+                  byte getBytes()[];
+              
+                  default String getStrings()[] {
+                    return new String[]{};
+                  }
+              
+                  static int getInts()[] {
+                    return new int[]{};
+                  }
+              }
+              
+              // Mixed normal and C-style arrays
+              class C {
+                  public byte[] normalArray() {
+                    return new byte[]{};
+                  }
+              
+                  public byte cStyleArray()[] {
+                    return new byte[]{};
+                  }
+              
+                  public int processArray(byte[] input)[] {
+                    return new int[]{};
+                  }
+              }
+              
+              // Type annotations on return types
+              class D {
+                  // Annotation on element type with C-style dimensions
+                  public @NonNull String getAnnotatedString()[] {
+                    return new String[]{"test"};
+                  }
+              
+                  // Multiple annotations on element type
+                  public @NonNull @Deprecated Integer getMultiAnnotated()[][] {
+                    return new Integer[][]{};
+                  }
+              
+                  // Annotation on element type with parameters
+                  public @NonNull String process(@NonNull String input)[] {
+                    return new String[]{input};
+                  }
+              
+                  // Annotation with generic type
+                  public @NonNull <T> T getGeneric(T value)[] {
+                    return (T[]) new Object[]{value};
+                  }
+              
+                  // Multiple type annotations with throws
+                  public @NonNull @Deprecated byte getData()[] throws IOException {
+                    return new byte[]{};
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void cstyleArrayMethodWithTypeAnnotations() {
+        rewriteRun(
+          java(
+            """
+              import java.lang.annotation.ElementType;
+              import java.lang.annotation.Retention;
+              import java.lang.annotation.RetentionPolicy;
+              import java.lang.annotation.Target;
+              
+              @Target({ElementType.TYPE_USE})
+              @Retention(RetentionPolicy.RUNTIME)
+              @interface NotNull {}
+              
+              @Target({ElementType.TYPE_USE})
+              @Retention(RetentionPolicy.RUNTIME)
+              @interface Nullable {}
+              
+              class TypeAnnotatedArrays {
+                  // Type annotation on element type with C-style
+                  public @NotNull String getNotNullString()[] {
+                    return new String[]{};
+                  }
+              
+                  // Type annotation on array element with multiple dimensions
+                  public @NotNull String getNotNullArray()[][] {
+                    return new String[][]{};
+                  }
+              
+                  // Multiple type annotations
+                  public @NotNull @Nullable String conflictingAnnotations()[] {
+                    return new String[]{};
+                  }
+              
+                  // Type annotation with generic bounds
+                  public <T extends @NotNull Object> @NotNull T processGeneric(T value)[] {
+                    return (T[]) new Object[]{value};
+                  }
+              
+                  // Type annotation on primitive wrapper
+                  public @NotNull Integer getInteger()[] {
+                    return new Integer[]{1, 2, 3};
+                  }
+              
+                  // Type annotation with varargs parameter
+                  public @NotNull String concat(@NotNull String... parts)[] {
+                    return parts;
+                  }
+              
+                  // Type annotation on nested generic type
+                  public @NotNull java.util.List<@NotNull String> getList()[] {
+                    return new java.util.List[]{};
+                  }
+              }
+              """
+          )
+        );
+    }
 }
