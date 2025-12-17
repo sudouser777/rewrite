@@ -1354,15 +1354,27 @@ public class ReloadableJava11ParserVisitor extends TreePathScanner<J, Space> {
         Space prefix = whitespace();
         TypeTree elemType = convert(typeIdent);
 
-        // Check if '[' is at the current position (normal array) or after method name (C-style)
-        int saveCursor = cursor;
-        whitespace();
-        boolean hasBracketAtCurrentPosition = cursor < source.length() && source.charAt(cursor) == '[';
-        cursor = saveCursor;
+        // Check if this is a C-style array in a method return type context
+        // This check ensures we don't break normal array fields
+        boolean isMethodReturnType = false;
+        for (Tree node : getCurrentPath()) {
+            if (node instanceof JCMethodDecl) {
+                isMethodReturnType = true;
+                break;
+            }
+        }
 
-        if (!hasBracketAtCurrentPosition) {
-            // C-style array: dimensions appear after method name, return just the element type
-            return elemType.withPrefix(prefix);
+        if (isMethodReturnType) {
+            // For method return types, check if brackets are at current position
+            int saveCursor = cursor;
+            whitespace();
+            boolean hasBracketAtCurrentPosition = cursor < source.length() && source.charAt(cursor) == '[';
+            cursor = saveCursor;
+
+            if (!hasBracketAtCurrentPosition) {
+                // C-style array: dimensions appear after method name, return just element type
+                return elemType.withPrefix(prefix);
+            }
         }
 
         List<J.Annotation> annotations = leadingAnnotations(annotationPosTable);

@@ -39,4 +39,3 @@ public class CStyleArrayDimensions implements Marker {
 
     List<JLeftPadded<Space>> dimensions;
 }
-
